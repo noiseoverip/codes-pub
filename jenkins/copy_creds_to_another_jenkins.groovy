@@ -2,6 +2,9 @@
 
 userToken = "YOUR_USER_NAME:TOKEN" // get token in https://JENKINS/user/YOUR_USER_NAME/configure
 targetJenkinsHost = "https://YOUR_JENKINS_HOST"
+// Path to post credentials to. Example below is to copy credentials to global credential store. To create creds in
+// "folder" MYFOLDER: job/MYFOLDER/credentials/store/folder/domain/_/createCredentials
+targetJenkinsPath = "credentials/store/system/domain/_/createCredentials"
 
 // List of credentials to tranfer. To obtain it, login to Jenkins and then open URL:
 // https://YOUR_JENKINS_HOSTNAME/credentials/store/system/domain/_/api/json?tree=credentials[id,typeName,description]
@@ -91,7 +94,7 @@ void runScript() {
                 withCredentials([file(credentialsId: c.id, variable: 'FILE_NAME')]) {
                     def fileContents  = readFile(file: env.FILE_NAME)
                     def fileName = env.FILE_NAME.substring(env.FILE_NAME.lastIndexOf('/') + 1)
-                    postToJenkins(this, userToken, "credentials/store/system/domain/_/createCredentials",
+                    postToJenkins(this, userToken, targetJenkinsPath,
                             secretFile(c.id, fileName, fileContents, c.description))
                 }
 
@@ -101,7 +104,7 @@ void runScript() {
                 echo("Copying [${c.typeName}] id:${c.id} type:${c.typeName}")
 
                 withCredentials([string(credentialsId: c.id, variable: 'SECRET_TEXT')]) {
-                    postToJenkins(this, userToken, "credentials/store/system/domain/_/createCredentials",
+                    postToJenkins(this, userToken, targetJenkinsPath,
                             secretText(c.id, env.SECRET_TEXT, c.description))
                 }
                 break
@@ -110,7 +113,7 @@ void runScript() {
 
                 withCredentials([sshUserPrivateKey(credentialsId: c.id, keyFileVariable: 'KEY_FILE', passphraseVariable: 'PASSPHRASE', usernameVariable: 'USERNAME')]) {
                     def key  = readFile(file: env.KEY_FILE)
-                    postToJenkins(this, userToken, "credentials/store/system/domain/_/createCredentials",
+                    postToJenkins(this, userToken, targetJenkinsPath,
                             secretUserNameAndPrivateKey(c.id, env.USERNAME, env.PASSPHRASE, key, c.description))
                 }
                 break
@@ -121,7 +124,7 @@ void runScript() {
                         usernamePassword(credentialsId: c.id,
                                 usernameVariable: 'USERNAME',
                                 passwordVariable: 'PASSWORD')]) {
-                    postToJenkins(this, userToken, "credentials/store/system/domain/_/createCredentials",
+                    postToJenkins(this, userToken, targetJenkinsPath,
                             secretUsernamePassword(c.id, env.USERNAME, env.PASSWORD, c.description))
                 }
                 break
@@ -130,11 +133,11 @@ void runScript() {
 }
 
 node () {
-   try {
-       runScript()
-   } catch(Exception e) {
-       error(e.toString())
-   } finally {
-       cleanWs()
-   }
+    try {
+        runScript()
+    } catch(Exception e) {
+        error(e.toString())
+    } finally {
+        cleanWs()
+    }
 }
